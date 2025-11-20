@@ -1,25 +1,25 @@
 import { NextResponse } from 'next/server';
 import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 import { HuggingFaceInferenceEmbeddings } from "@langchain/community/embeddings/hf";
-import { createClient } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_SUPABASE_SERVICE_ROLE_KEY 
+  process.env.NEXT_SUPABASE_SERVICE_ROLE_KEY
 );
 
 export async function POST(request) {
   try {
     // Parse the incoming request document
     const document = await request.json();
-    
+
     // Log the received data
     console.log('📥 Received embed request');
     console.log('document:', document.metadata)
     console.log('📄 PDF ID:', document.pdfId);
     console.log('📂 File Path:', document.filePath);
     console.log('📚 Number of pages:', document.docs?.length || 0);
-    
+
     // Log first page content (truncated for readability)
     if (document.docs && document.docs.length > 0) {
       const firstPage = document.docs[0];
@@ -40,7 +40,7 @@ export async function POST(request) {
 
     console.log("✅ Split completed - total chunks: ", splitDocs.length);
 
-     // Initialize Hugging Face embeddings
+    // Initialize Hugging Face embeddings
     const embeddings = new HuggingFaceInferenceEmbeddings({
       apiKey: process.env.HUGGINGFACE_API_KEY,
       model: "sentence-transformers/all-mpnet-base-v2",
@@ -54,7 +54,7 @@ export async function POST(request) {
     console.log('🧮 Generated embeddings:', embeddingsArray.length);
 
     //Insert into Supabase
-   const { data, error } = await supabase
+    const { data, error } = await supabase
       .from('pdf_embeddings')
       .insert(
         embeddingsArray.map((embedding, i) => ({
@@ -68,7 +68,7 @@ export async function POST(request) {
 
     if (error) throw error;
 
-     console.log('✅ Stored embeddings in Supabase:', data?.length || 0);
+    console.log('✅ Stored embeddings in Supabase:', data?.length || 0);
     // Return success response
     return NextResponse.json({
       success: true,
@@ -82,7 +82,7 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('❌ Error in /api/embed:', error);
-    
+
     return NextResponse.json({
       success: false,
       error: error.message || 'Failed to process embed request'
